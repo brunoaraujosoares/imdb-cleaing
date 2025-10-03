@@ -14,7 +14,7 @@
 
    INPUT: None
 
-   OUTPUT: See comments in each statement
+   OUTPUT: See comments below each statement
 
    NOTES:
 
