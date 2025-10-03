@@ -12,6 +12,8 @@ It focuses on transforming messy raw data into a **structured, analysis-ready fo
 
 ## TODO
 - Single `main.sql` to run the entire pipeline.
+- Include 'functions.sql' in the other SQL scripts where functions are needed.
+
 
 ## Why this project?
 It showcases **practical data engineering + data science skills**:  

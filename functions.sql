@@ -7,10 +7,15 @@
 ======================================================================   
   OBJECTIVE:
     This file contains reusable PostgreSQL functions developed for the
-    dataset cleaning and preprocessing project. Each function is designed
-    to support data quality assessment, transformation, and analysis tasks,
-    such as counting NULL values, standardizing formats, and other common
-    dataset cleaning operations.
+    dataset cleaning and preprocessing project. Functions included here
+    support tasks such as data quality assessment, standardization of
+    text columns, and analysis of categorical distributions.
+
+USAGE:
+    - Run this script before the other scripts to store the functions
+      in the database
+    - Each function is self-contained and can be called independently.
+
 
    DEPENDENCIES: None
 
@@ -22,7 +27,13 @@
     - Functions are implemented in PL/pgSQL.
     - Ensure proper schema permissions before executing the functions.
     - Designed for PostgreSQL databases.
+
+  TODO
+    - Include or source this file in SQL scripts where dataset cleaning
+      functions are needed.
+
 =================================================================== */
+
 
 /*
     Function: public.count_null
@@ -55,8 +66,9 @@
 
     Notes:
         - Only works for columns of types compatible with '' (empty string) comparison.
-        - Designed for PostgreSQL using PL/pgSQL.
 */
+
+
 
 CREATE OR REPLACE FUNCTION public.count_null(
     p_schema TEXT,
@@ -133,11 +145,9 @@ end    Function: public.count_null
     Usage:
         SELECT trim_column('table_name', 'column_name');
 
-    Notes:
-        - Implemented in PL/pgSQL.
-        - Make sure you have UPDATE permissions on the target table.
-        - Intended for PostgreSQL databases.
+
 */
+
 
 CREATE OR REPLACE FUNCTION trim_column(
     t_name text,
@@ -155,4 +165,57 @@ BEGIN
 END;
 $$
 LANGUAGE plpgsql;
+/*
+end Function: public.trim_column
+*/
+
+/*
+    Function: public.count_occurrences
+
+    Purpose:
+        Counts the number of occurrences of each distinct value in a specified
+        column of a table. Returns a summary of values and their frequencies,
+        ordered by descending count. Useful for analyzing categorical data
+        distributions and detecting common or rare values.
+
+    Parameters:
+        t_name TEXT - Name of the target table.
+        c_name TEXT - Name of the column to analyze.
+
+    Returns:
+        TABLE with columns:
+            column_value TEXT      - The distinct value from the column (cast to text).
+            num_occurrences BIGINT - Number of times the value appears in the column.
+
+    Usage:
+        SELECT * FROM count_occurrences('table_name', 'column_name');
+
+    Notes:
+        - Works with any column type that can be cast to text.
+        - Intended for PostgreSQL databases.
+*/
+CREATE OR REPLACE FUNCTION count_occurrences(
+    t_name text,
+    c_name text
+)
+RETURNS TABLE(column_value text, num_occurrences bigint) AS
+$$
+BEGIN
+    RETURN QUERY EXECUTE format(
+        'SELECT %I::text, COUNT(%I) AS num_occurrences
+            FROM %I
+            GROUP BY %I
+            ORDER BY COUNT(%I) DESC',
+        c_name,  -- SELECT
+        c_name,  -- COUNT
+        t_name,  -- FROM
+        c_name,  -- GROUP BY
+        c_name   -- ORDER BY
+    );
+END;
+$$
+LANGUAGE plpgsql;
+/*
+  end Function: public.count_occurrences
+*/
 
