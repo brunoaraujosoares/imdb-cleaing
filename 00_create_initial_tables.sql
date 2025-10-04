@@ -16,18 +16,27 @@
 
    NOTES:
 
+    1.
     I initially created all columns as character varying because
 	there were null fields. Later, I had to convert the "overview"
 	column's data type to TEXT (because some values were longer than 
 	255 characters, which resulted in error when importing cvs file) 
 
+    2.
+    I added an id to the column for further analisys and 
+    relastioships
+
+
+    3.
     ===============================================================
      !!! REMEMBER TO IMPORT DATA BEFORE CREATING tb_imdb_stag !!!
     ===============================================================
 
+    4.
     tb_imdb_stag is a simple copy of the original table for 
     transformation on data berfore applying changes on the original
     tb_imdb
+
 =================================================================== */
 
 
@@ -54,6 +63,10 @@
     );
 
     ALTER TABLE IF EXISTS public.tb_imdb OWNER to postgres;
+
+    -- adding an id to tb_imdb
+	ALTER TABLE tb_imdb
+		ADD COLUMN id_series BIGSERIAL PRIMARY KEY;
 
 
     -- IMPORT DATA BEFORE CONTINUE
