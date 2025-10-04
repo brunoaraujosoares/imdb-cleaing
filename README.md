@@ -13,7 +13,9 @@ It focuses on transforming messy raw data into a **structured, analysis-ready fo
 ## TODO
 - Single `main.sql` to run the entire pipeline.
 - Include 'functions.sql' in the other SQL scripts where functions are needed.
-
+- Instead of replacing certificates values, create a map table with the normalized data;
+- Look for non alphabetic characters in text fields;
+- Validate if gross and no_of_votes have values ​​consistent with the year.
 
 ## Why this project?
 It showcases **practical data engineering + data science skills**:  

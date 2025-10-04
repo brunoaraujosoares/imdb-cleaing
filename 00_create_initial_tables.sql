@@ -44,7 +44,12 @@
     genres and a relation between the movies and the genres to 
 	use in further analisys. 
 
-	The SQL CODE TO CREATE TALE IS IN 00_create_initial_tables.sqp
+	6. 
+    To check for typos in the movie participants (director, 
+    star1, star2, star3 and star4) names, I created a new table from 
+    the respecctive columns. This will be also useful in the EDA
+    i.e. to figure out the most active participant.
+
 	*/
 
 =================================================================== */
@@ -154,3 +159,30 @@
         i.runtime,
         i.imdb_rating
     ORDER BY i.series_title;
+    
+    
+    -- Creating separate movie participants table: public.tb_movie_participants
+    -- It holds director, star1, star2, star3 and star4 from tb_imdb
+    DROP TABLE IF EXISTS public.tb_movie_participants;
+
+	CREATE TABLE IF NOT EXISTS public.tb_movie_participants (
+	    id_participant SERIAL PRIMARY KEY,
+	    id_series BIGINT NOT NULL,
+	    participant VARCHAR(200) NOT NULL,
+	    movie_role VARCHAR(50) NOT NULL
+	);
+	
+	INSERT INTO public.tb_movie_participants (id_series, participant, movie_role)
+		SELECT DISTINCT id_series, participants, movie_role
+		FROM public.tb_imdb
+		CROSS JOIN LATERAL (
+		    VALUES
+		        (director, 'director'),
+		        (star1, 'star1'),
+		        (star2, 'star2'),
+		        (star3, 'star3'),
+		        (star4, 'star4')
+		) AS roles(participant, movie_role)
+		WHERE participant IS NOT NULL
+		  AND participant <> '';
+
