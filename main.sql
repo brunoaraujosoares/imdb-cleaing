@@ -1,10 +1,9 @@
-├── 00_create_tables.sql
-├── 01_initial_analysis.sql
-├── 02_standardization.sql
-├── 03_inconsistencies.sql
-├── 04_missing_values.sql
-├── 05_duplicates.sql
-├── 06_text_normalization.sql
-├── 07_typo_detection.sql
-├── 08_metadata.sql
-└── 09_final_checks.sql
+/* run in the folowing order 
+
+functions.sql
+00_create_initial_tables.sql
+01_trim_fields.sql
+02_initial_analysis.sql
+03_standardization.sql
+04_data_dictionary.sql
+*/
