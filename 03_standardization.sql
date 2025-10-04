@@ -2,7 +2,7 @@
    PROJECT: IMDB Data Cleaning (Kaggle dataset)
    FILE:    [03_standardization.sql]   
    AUTHOR:  Bruno Lucido - brunoaraujosoares@gmail.com
-   DATE:    [2025-10-03]
+   DATE:    [2025-10-03, 2025-10-04]
    VERSION: 1.0
 ======================================================================
    OBJECTIVES: 
@@ -47,7 +47,7 @@
 		SELECT MAX(num_occurrences) FROM counts
 		);
 
-		/*|--------|----------------|
+	  /*|--------|----------------|
 		|  mode  | num_occurences |
 		|--------|----------------|
 		|  2014  |            32  |
@@ -63,7 +63,7 @@
 		ORDER BY released_year::smallint) as median
 		FROM public.tb_imdb;
 
-		/*|--------|
+	  /*|--------|
 		| median |
 		|--------|
 		|  1999  |
@@ -121,14 +121,14 @@
 	SELECT * FROM count_occurrences('public.tb_imdb', 'certificate');
 
 
-	/*|---------------|----------------|
+	  /*|---------------|----------------|
 		|  certificate  | num_occurences |
 		|---------------|----------------|
 		|  A            |           197  |
 		|---------------|----------------|
 		|  UA           |           175  |
 		|---------------|----------------|
-		|  R	          |           146  |
+		|  R	        |           146  |
 		|---------------|----------------|
 		|  [null]       |           101  |
 		|---------------|----------------|
@@ -206,19 +206,90 @@
 
 /* end certificate */
 
--- certificate runtime
+--  runtime
+	/*  Most datasets  recurrent errors appear in 
+	the first 10 rows or so. In very large datasets, sampling is an alternative.
+	In this case, I selected all rows because it is a small table. */
+
 
 	SELECT * FROM count_occurrences('public.tb_imdb', 'runtime');
 
+	-- no abnomalies where found, but the runtime adds 'min'. 
+	-- I should remove it and alter the data type into integer.
+
+	UPDATE public.tb_imdb SET 
+		runtime = REGEXP_REPLACE(runtime, '[A-Za-z ]','','g' )
+
+	ALTER TABLE public.tb_imdb ALTER COLUMN runtime TYPE SMALLINT
+		USING runtime::SMALLINT
+
+	-- check domain (0-400)
+	  SELECT MIN(runtime), MAX(runtime) FROM public.tb_imdb
+	  --  45 | 321
+
+		SELECT series_title, released_year, runtime
+		FROM public.tb_imdb
+		WHERE runtime = (
+		    SELECT MAX(runtime)
+		    FROM public.tb_imdb
+		);
+
+		-- "Gangs of Wasseypur"	| 2012 | 321. 
+		-- A very long movie indeed!
+
+/* end runtime */
+
+  ---  genre column
+
+	SELECT * FROM count_occurrences('public.tb_imdb', 'genre');
+	
+	/* head(6)
+
+	"Drama"	85
+	"Drama, Romance"	37
+	"Comedy, Drama"	35
+	"Comedy, Drama, Romance"	31
+	"Action, Crime, Drama"	30
+	-----
+
+	no inconsistences were found but it would be nice to create a 
+	separate table to the genres and a relation between the movies 
+	and the genres to 	use in  further analisys. 
+
+	The SQL code to create this table is in 
+	00_create_initial_tables.sql file
+	
+	*/
+	
+
+/* end genre */
+
+-- imdb_rating
+
+	SELECT * FROM count_occurrences('public.tb_imdb', 'imdb_rating');
+
+	-- Alter column data type to FLOAT with one .
+	ALTER TABLE public.tb_imdb ALTER COLUMN imdb_rating TYPE NUMERIC(3,1)
+		USING imdb_rating::NUMERIC(3,1);
+
+	-- check domain
+	SELECT MIN(imdb_rating), MAX(imdb_rating) FROM public.tb_imdb;
+	-- 7.6 | 9.3
+
+/* end imdb_rating */
+
+  -- overview 
+
+	SELECT * FROM count_occurrences('public.tb_imdb', 'overview');
+
+	-- no inconsistences were found
+	-- nothing to do here
+
+/* end   -- overview  */
 
 
 
 
-
-
-SELECT * FROM count_occurrences('public.tb_imdb', 'genre');
-SELECT * FROM count_occurrences('public.tb_imdb', 'imdb_rating');
-SELECT * FROM count_occurrences('public.tb_imdb', 'overview');
 SELECT * FROM count_occurrences('public.tb_imdb', 'meta_score');
 SELECT * FROM count_occurrences('public.tb_imdb', 'director');
 SELECT * FROM count_occurrences('public.tb_imdb', 'star1');
