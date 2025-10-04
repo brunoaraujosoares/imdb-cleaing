@@ -287,16 +287,154 @@
 
 /* end   -- overview  */
 
+  -- meta_score 
+	
+	SELECT * FROM count_occurrences('public.tb_imdb', 'meta_score');
+
+	-- a lot of missing here (157 - 15,7%). 
+
+	/* Note: 
+		The METASCORE is a weighted average of reviews from top critics and 
+		publications for a given movie, TV show, video game, or album as
+		declared by Metacritic website.
+
+		there may be a correlation with imdb_rating, or maybe not. 
+		Movie critics know nothing! :)
+		
+
+		Options for handling missing data
+			a) 	Exclude the column from the analysis.
+				Advantage: simplicity, avoids imputation bias.
+				Disadvantage: you lose a metric that can aggregate 
+				information (expert(?) reviews <> audience rating).
+
+			b)	Exclude only records with a null meta_score by creating
+				an aux column "has_meta_score".
+				Advantage: keeps the column intact.
+				Disadvantage: reduces the sample size 
+				(can bias the analysis if films without a 
+				meta_score are not random).
+
+			c) 	Simple (deterministic) imputation
+				Replace nulls with the mean, median, or mode.
+				Advantage: easy to implement directly in SQL.
+				Disadvantage: flattens variability and can distort correlations.
+
+			d) 	Advanced Imputation (Probabilistic/Predictive)
+				Use regression or another model to predict meta_score based
+				on imdb_rating, genre, year, etc.
+				Advantage: Preserves data structure and reduces information loss.
+				Disadvantage: Pure PostgreSQL does not have sophisticated
+				built-in imputation algorithms.
+
+		*/
+		
+		-- check nulls
+		SELECT * FROM public.tb_imdb WHERE meta_score IS NULL;
+
+		-- check domain
+		SELECT MAX(imdb_rating), MIN(imdb_rating), AVG(imdb_rating) FROM public.tb_imdb
+		WHERE meta_score IS NULL;
+		-- MAX | MIN |  AVG  |
+		-- 8.6 | 7.6 | 8.043 |
+
+		/*
+			I suppose most of the null values are movies not on mainstream, so they
+			weren't rated by critics.
+			
+			After trying two different forms of imputation I decided leave at it is.
+			The changes I made distorted data distribution too much. 15% is too much
+			missing data.
+			
+			Before EDA I should use imputation algorithms such as KNNImputer,
+			IterativeImputer, or regression models and then Reimport to Postgres.
+		*/
+
+		-- Alter data type to numeric
+		
+		ALTER TABLE public.tb_imdb ALTER COLUMN meta_score TYPE SMALLINT
+			USING meta_score::SMALLINT
+
+/* end   -- meta_score  */
+
+  --  Director and Stars
+	/*
+		I already checked nulls before
+		
+		I created a single table tb_movie_crew to check mispelling
+		from the columns director, star1, star2, star3, star4
+
+		The SQL code to create this table is in 
+		00_create_initial_tables.sql file
+	*/
+
+	-- check distance visual analisys needed
+		
+		CREATE EXTENSION fuzzystrmatch;
+		SELECT a.participant as p1,
+				b.participant as p2,
+				levenshtein(a.participant,b.participant) as distance
+			FROM public.tb_movie_participant a
+			JOIN public.tb_movie_participant b
+				ON a.participant < b.participant
+			WHERE levenshtein(a.participant,b.participant) <= 3
+			ORDER BY distance;
+
+		-- No inconsistences found
+	
+/* end   -- Director and Stars  */
 
 
+-- no_of_votes
+	SELECT * FROM count_occurrences('public.tb_imdb', 'no_of_votes');
 
-SELECT * FROM count_occurrences('public.tb_imdb', 'meta_score');
-SELECT * FROM count_occurrences('public.tb_imdb', 'director');
-SELECT * FROM count_occurrences('public.tb_imdb', 'star1');
-SELECT * FROM count_occurrences('public.tb_imdb', 'star2');
-SELECT * FROM count_occurrences('public.tb_imdb', 'star3');
-SELECT * FROM count_occurrences('public.tb_imdb', 'star4');
-SELECT * FROM count_occurrences('public.tb_imdb', 'no_of_votes');
-SELECT * FROM count_occurrences('public.tb_imdb', 'gross');
+	-- no inconsistences were found
+	ALTER TABLE public.tb_imdb ALTER COLUMN no_of_votes TYPE BIGINT
+		USING no_of_votes::BIGINT
 
+	-- check domain
+	SELECT MIN(no_of_votes), MAX(no_of_votes) FROM public.tb_imdb;
+	-- 25088, 	2343110
+
+
+-- gross
+	
+	SELECT * FROM count_occurrences('public.tb_imdb', 'gross');
+
+		-- too many null values 16,9%
+		-- I might perform a regression with Python before starting the exploratory analysis.
+
+	--check domain
+	SELECT MIN(gross::numeric), MAX(no_of_votes::numeric) FROM public.tb_imdb;
+	-- 1,000,045,	2,343,110
+
+	-- values not currency
+	SELECT gross FROM public.tb_imdb WHERE gross !~ '^[0-9,]+$';
+	-- no result
+
+	-- sample 
+	SELECT gross FROM public.tb_imdb WHERE gross IS NOT NULL ORDER BY RANDOM () LIMIT 50;
+
+	-- creating aux column to transform data
+	-- shame on me. I did not use the staging table :(
+	ALTER TABLE public.tb_imdb ADD COLUMN gross_num NUMERIC;
+
+	-- update aux table with transformed data
+	UPDATE public.tb_imdb SET gross_num = NULLIF(
+			regexp_replace(gross, '[^0-9]', '', 'g'), ''
+		)::NUMERIC;
+
+	SELECT gross_num, COUNT(*) as num_occurences FROM public.tb_imdb
+		GROUP BY gross_num ORDER BY COUNT(*) DESC;
+
+	-- 1. Remove old column
+	ALTER TABLE public.tb_imdb DROP COLUMN gross;
+
+	-- 2. rename new column to gross
+	ALTER TABLE public.tb_imdb
+		RENAME COLUMN gross_num TO gross;
+
+	--check domain again
+	SELECT MIN(gross), MAX(no_of_votes) FROM public.tb_imdb;
+	;-- 1305 | 2343110
 
